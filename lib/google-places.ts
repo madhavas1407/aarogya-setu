@@ -42,11 +42,16 @@ function convert(place: Record<string, any>): GooglePlace {
   };
 }
 
-export async function searchPlaces(query: string) {
+export type SearchBias = { latitude: number; longitude: number; radiusMeters: number };
+
+export async function searchPlaces(query: string, near?: SearchBias) {
+  const locationBias = near
+    ? { circle: { center: { latitude: near.latitude, longitude: near.longitude }, radius: near.radiusMeters } }
+    : undefined;
   const response = await fetch(`${API}:searchText`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Goog-Api-Key": apiKey(), "X-Goog-FieldMask": SEARCH_FIELDS },
-    body: JSON.stringify({ textQuery: query, includedType: "hospital", strictTypeFiltering: false, pageSize: 10, regionCode: "IN", languageCode: "en" }),
+    body: JSON.stringify({ textQuery: query, includedType: "hospital", strictTypeFiltering: false, pageSize: 10, regionCode: "IN", languageCode: "en", locationBias }),
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });

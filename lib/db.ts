@@ -22,16 +22,18 @@ export function getPool(): Pool {
 
 export async function transaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await getPool().connect();
+  let brokenConnection: Error | undefined;
   try {
     await client.query("BEGIN");
     const result = await fn(client);
     await client.query("COMMIT");
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    // A failed ROLLBACK must not hide the original error, and the connection must not return to the pool.
+    await client.query("ROLLBACK").catch((rollbackError: Error) => { brokenConnection = rollbackError; });
     throw error;
   } finally {
-    client.release();
+    client.release(brokenConnection);
   }
 }
 

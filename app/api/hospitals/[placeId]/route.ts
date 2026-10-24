@@ -1,12 +1,15 @@
 import { NextRequest } from "next/server";
 import { getPlaceDetails } from "@/lib/google-places";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ placeId: string }> }) {
   const { placeId } = await params;
-  if (!placeId || placeId.length > 300) return Response.json({ error: "Invalid Google Place ID." }, { status: 400 });
+  if (!placeId || placeId.length > 300 || !/^[A-Za-z0-9_-]+$/.test(placeId)) return Response.json({ error: "Invalid Google Place ID." }, { status: 400 });
+  const limit = rateLimit(request, "hospital-details", 30);
+  if (!limit.allowed) return Response.json({ error: `Too many requests. Try again in ${limit.retryAfterSeconds}s.` }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
   try {
     const place = await getPlaceDetails(placeId);
     if (!place) return Response.json({ error: "Place not found." }, { status: 404 });
