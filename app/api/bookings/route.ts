@@ -8,7 +8,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const session = await getSession().catch(() => null);
+  const session = await getSession().catch(() => undefined);
+  if (session === undefined) {
+    return Response.json({ error: "Session storage is unavailable or not configured." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
   if (!session || session.actorType !== "patient") {
     return Response.json({ error: "A verified patient session is required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }

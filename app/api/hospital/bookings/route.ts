@@ -7,7 +7,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const session = await getSession().catch(() => null);
+  const session = await getSession().catch(() => undefined);
+  if (session === undefined) {
+    return Response.json({ error: "Session storage is unavailable or not configured." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
   if (!session || session.actorType !== "hospital") {
     return Response.json({ error: "An active hospital account is required." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
@@ -46,7 +49,7 @@ export async function GET() {
       }
       return result.rows.map((row) => ({
         bookingId: row.booking_id,
-                facilityPlaceId: row.facility_id,
+        facilityPlaceId: row.facility_id,
         specialty: row.specialty,
         requestedAt: row.requested_at,
         status: row.booking_status,
